@@ -1,0 +1,21 @@
+CREATE TABLE patients (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    date_of_birth DATE NULL,
+    gender VARCHAR(30) NULL,
+    whatsapp_number VARCHAR(20) NULL,
+    timezone VARCHAR(64) NOT NULL DEFAULT 'UTC',
+    whatsapp_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    email_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    sms_notifications_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_date DATETIME(6) NOT NULL,
+    updated_date DATETIME(6) NOT NULL,
+    created_by BIGINT NOT NULL DEFAULT 0,
+    updated_by BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_patients_email (email),
+    UNIQUE KEY uk_patients_whatsapp_number (whatsapp_number)
+);

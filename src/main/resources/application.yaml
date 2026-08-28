@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: patient-ms
+  webflux:
+    base-path: /patient-ms
+  flyway:
+    enabled: true
+    url: jdbc:mysql://localhost:3306/patient?createDatabaseIfNotExist=true
+    user: jasho
+    password: password
+
+  r2dbc:
+    url: r2dbc:mysql://localhost:3306/patient
+    username: jasho
+    password: password
+
+
+server:
+  port: 8124
