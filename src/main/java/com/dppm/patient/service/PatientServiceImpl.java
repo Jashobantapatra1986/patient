@@ -25,7 +25,9 @@ import static com.dppm.patient.constants.PatientConstants.WHATSAPP_NO;
 public class PatientServiceImpl implements PatientService {
     private final PatientRepository patientRepository;
 
-    public PatientServiceImpl(PatientRepository patientRepository) { this.patientRepository = patientRepository; }
+    public PatientServiceImpl(PatientRepository patientRepository) {
+        this.patientRepository = patientRepository;
+    }
 
     @Override
     public Mono<Patient> register(CreatePatientRequest request) {
@@ -54,13 +56,14 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public Mono<Patient> getById(String id) {
-        return patientRepository.findById(id).switchIfEmpty(Mono.error(new PatientNotFoundException(id)));
+        return patientRepository.findById(parseId(id)).switchIfEmpty(Mono.error(new PatientNotFoundException(id)));
     }
 
     @Override
     public Mono<Patient> updateProfile(String id, UpdatePatientRequest request) {
         String email = normalizedEmail(request.email());
-        return getById(id).flatMap(patient -> ensureEmailAvailable(email, id).thenReturn(patient)).flatMap(patient -> {
+        Long patientId = parseId(id);
+        return getById(id).flatMap(patient -> ensureEmailAvailable(email, patientId).thenReturn(patient)).flatMap(patient -> {
             patient.updateProfile(request.firstName().trim(), request.lastName().trim(), email,
                     request.dateOfBirth(), trimToNull(request.gender()), request.whatsappNumber());
             return patientRepository.save(patient);
@@ -70,7 +73,8 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public Mono<Patient> updateWhatsappNumber(String id, WhatsappNumberRequest request) {
         String phone = normalizePhone(request.whatsappNumber());
-        return getById(id).flatMap(patient -> ensureWhatsappAvailable(phone, id).thenReturn(patient)).flatMap(patient -> {
+        Long patientId = parseId(id);
+        return getById(id).flatMap(patient -> ensureWhatsappAvailable(phone, patientId).thenReturn(patient)).flatMap(patient -> {
             patient.setWhatsappNumber(phone);
             return patientRepository.save(patient);
         });
@@ -109,15 +113,23 @@ public class PatientServiceImpl implements PatientService {
                 .switchIfEmpty(Flux.error(new PatientNotFoundException()));
     }
 
-    private Mono<Void> ensureEmailAvailable(String email, String currentPatientId) {
+    private Mono<Void> ensureEmailAvailable(String email, Long currentPatientId) {
         Mono<Boolean> exists = currentPatientId == null ? patientRepository.existsByEmail(email) : patientRepository.existsByEmailAndIdNot(email, currentPatientId);
         return exists.flatMap(found -> found ? Mono.<Void>error(new DuplicatePatientException("email")) : Mono.empty());
     }
 
-    private Mono<Void> ensureWhatsappAvailable(String phone, String currentPatientId) {
+    private Mono<Void> ensureWhatsappAvailable(String phone, Long currentPatientId) {
         if (phone == null) return Mono.empty();
         Mono<Boolean> exists = currentPatientId == null ? patientRepository.existsByWhatsappNumber(phone) : patientRepository.existsByWhatsappNumberAndIdNot(phone, currentPatientId);
         return exists.flatMap(found -> found ? Mono.<Void>error(new DuplicatePatientException(WHATSAPP_NO)) : Mono.empty());
+    }
+
+    private Long parseId(String id) {
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Patient id must be numeric");
+        }
     }
 
     private String validatedTimezone(String value) {
